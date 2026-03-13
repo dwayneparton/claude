@@ -1,0 +1,24 @@
+# Claude Code managed/ephemeral files - don't version these
+history.jsonl
+debug/
+cache/
+paste-cache/
+plans/
+session-env/
+shell-snapshots/
+tasks/
+todos/
+telemetry/
+statsig/
+stats-cache.json
+file-history/
+ide/
+plugins/
+projects/
+policy-limits.json
+remote-settings.json
+mcp-needs-auth-cache.json
+backups/
+
+# OS
+.DS_Store
