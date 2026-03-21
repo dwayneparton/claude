@@ -38,11 +38,6 @@ description: Send up PR to GitHub.
      ```
    - Return the PR URL to the user.
 
-5. **Verify CI checks:**
-   - Run `gh pr checks` to monitor check status.
-   - If any checks fail, run `gh run view {run_id} --log-failed` to diagnose.
-   - Fix failures, commit, and push. Repeat until checks pass or only unrelated failures remain.
-
 ## Important
 
 - Always create a new branch — never push directly to main/master.
