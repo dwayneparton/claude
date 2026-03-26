@@ -41,3 +41,10 @@ echo "  $CLAUDE_DIR/skills -> $REPO_DIR/skills"
 echo "  $CLAUDE_DIR/commands -> $REPO_DIR/commands"
 echo "  $CLAUDE_DIR/agent-memory -> $REPO_DIR/agent-memory"
 echo "  $CLAUDE_DIR/settings.json -> $REPO_DIR/settings.json"
+
+# Install scheduled tasks
+if [ -d "$REPO_DIR/scheduled" ]; then
+  echo ""
+  echo "Installing scheduled tasks..."
+  (cd "$REPO_DIR/scheduled" && npm install && bash scripts/install.sh)
+fi
