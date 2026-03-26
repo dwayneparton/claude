@@ -1,0 +1,47 @@
+name: pr-review-check
+description: Check GitHub PR reviews, handle Dependabot PRs, and send Slack summary
+working_directory: .
+model: sonnet
+schedule:
+  - Hour: 14
+    Minute: 0
+  - Hour: 21
+    Minute: 0
+prompt: |
+  You are running as an automated scheduled task. Perform the following steps:
+
+  ## 1. Check PR Reviews
+
+  Find all open PRs where my review is requested:
+
+  ```
+  gh search prs --review-requested=@me --state=open --json repository,number,title,url
+  ```
+
+  List each PR with its repo, title, and link.
+
+  ## 2. Handle Dependabot PRs
+
+  For each of my repositories, check for open Dependabot PRs:
+
+  ```
+  gh search prs --author=dependabot --state=open --owner=@me --json repository,number,title,url
+  ```
+
+  For each Dependabot PR:
+  - Check if CI is passing: `gh pr checks <number> -R <repo>`
+  - If all checks pass and it's a patch or minor version bump, approve and enable auto-merge:
+    ```
+    gh pr review <number> -R <repo> --approve
+    gh pr merge <number> -R <repo> --auto --squash
+    ```
+  - Track which PRs you approved/merged
+
+  ## 3. Send Slack Summary
+
+  After completing the above, send me a Slack message summarizing:
+  - PRs awaiting my review (with links)
+  - Dependabot PRs that were approved/merged
+  - Any errors encountered
+
+  Keep the message concise and well-formatted.

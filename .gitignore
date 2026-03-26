@@ -6,7 +6,7 @@ paste-cache/
 plans/
 session-env/
 shell-snapshots/
-tasks/
+/tasks/
 todos/
 telemetry/
 statsig/
@@ -19,6 +19,11 @@ policy-limits.json
 remote-settings.json
 mcp-needs-auth-cache.json
 backups/
+
+# Scheduled tasks
+scheduled/plists/
+scheduled/logs/
+scheduled/node_modules/
 
 # OS
 .DS_Store

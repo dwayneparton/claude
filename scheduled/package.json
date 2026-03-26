@@ -1,0 +1,20 @@
+{
+  "name": "scheduled",
+  "version": "1.0.0",
+  "description": "Local scheduled Claude Code agents via macOS Launch Agents",
+  "type": "module",
+  "scripts": {
+    "install-tasks": "tsx scripts/scheduled.ts install",
+    "uninstall-tasks": "tsx scripts/scheduled.ts uninstall",
+    "run-task": "tsx scripts/scheduled.ts run",
+    "list": "tsx scripts/scheduled.ts list"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
