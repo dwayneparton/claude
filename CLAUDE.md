@@ -111,6 +111,8 @@ This config embodies specific principles that agents and skills reference:
 
 After adding new files, re-run `./install.sh` (only needed if new top-level directories were added; existing symlinked directories pick up new files automatically).
 
+**README.md must stay in sync.** When adding a new agent, skill, command, or scheduled task, add a one-line entry to the corresponding section in `README.md`. The README is the public-facing overview — every capability should be listed there with a brief description.
+
 ## Conventions
 
 - Agent descriptions use trigger phrases (e.g., "MUST BE USED when user asks to...") to help Claude Code route to the right agent.
