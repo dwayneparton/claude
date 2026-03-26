@@ -49,6 +49,10 @@ The SDLC steps invoke other agents and skills in sequence:
 
 The `/spec-writer` skill produces numbered spec files in `specs/` using an RFC-inspired format with type contracts, behavioral specs (RFC 2119), and task checklists. Specs invoke both `api-ergonomics-reviewer` and `consultant` agents during review to ensure design decisions are stress-tested before finalizing. Specs feed into `/sdlc` or `/team` for implementation.
 
+### Vision Alignment
+
+The `/vision` skill creates and maintains a project vision document (`docs/VISION.md` or equivalent) that defines purpose, success criteria, guiding principles, and boundaries. The `vision` agent uses this skill and can operate in three modes: **create** (draft a new vision), **update** (revise an existing one), or **alignment check** (evaluate whether proposed work serves the vision). The vision document is referenced from `CLAUDE.md` so all agents can align their work against it.
+
 ### Exploration
 
 The `/spike` skill supports structured, timeboxed exploration — answering "can we?" or "should we?" before committing to a direction. Spikes produce findings (saved to `spikes/`), not production code. They connect curiosity to outcomes.
@@ -106,6 +110,8 @@ This config embodies specific principles that agents and skills reference:
 | Task | `scheduled/tasks/<name>.yaml` | YAML with `name`, `schedule`, `prompt` |
 
 After adding new files, re-run `./install.sh` (only needed if new top-level directories were added; existing symlinked directories pick up new files automatically).
+
+**README.md must stay in sync.** When adding a new agent, skill, command, or scheduled task, add a one-line entry to the corresponding section in `README.md`. The README is the public-facing overview — every capability should be listed there with a brief description.
 
 ## Conventions
 

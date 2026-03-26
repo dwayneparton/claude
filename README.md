@@ -27,6 +27,8 @@ Specialized agents that handle distinct parts of the workflow:
 - **practicality** — Grounds ambitious plans into practical, shippable steps
 - **refactor-scout** — Identifies refactoring opportunities, duplication, and cohesion issues
 - **api-ergonomics-reviewer** — Reviews public API surfaces for developer experience quality
+- **consultant** — Provides second opinions, counterpoints, and trade-off analysis before committing to a direction
+- **vision** — Creates, updates, or checks alignment with a project vision document
 
 ### Skills
 
@@ -39,10 +41,20 @@ Slash commands that automate common workflows:
 - `/github-pr-review-check` — Checks GitHub for reviews requiring approval
 - `/test-coverage` — Identifies test gaps and writes targeted tests
 - `/simplify` — Reviews changed code for reuse, quality, and efficiency
+- `/spike` — Timeboxed exploration to answer technical questions or validate approaches
+- `/vision` — Creates and maintains project vision documents with success criteria and guiding principles
 
 ### Commands
 
 - `/team` — Spawns a coordinated agent team to implement a spec or multi-task feature in parallel
+
+### Scheduled Tasks
+
+Cron-like tasks that run automatically via macOS Launch Agents. Each task sends a prompt to `claude -p` on a schedule.
+
+- Task definitions live in `scheduled/tasks/<name>.yaml`
+- Install with `bash scheduled/scripts/install.sh` (also runs during `./install.sh`)
+- View logs in `scheduled/logs/`
 
 ## Adding New Config
 
