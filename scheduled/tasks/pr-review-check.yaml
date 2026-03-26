@@ -1,6 +1,6 @@
 name: pr-review-check
 description: Check GitHub PR reviews, handle Dependabot PRs, and send Slack summary
-working_directory: ~/Documents/GitHub/claude
+working_directory: .
 model: sonnet
 schedule:
   - Hour: 14

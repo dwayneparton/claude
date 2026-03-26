@@ -179,7 +179,9 @@ function run(taskName: string): void {
   }
 
   const task = loadTask(taskFile);
-  const workingDir = task.working_directory?.replace(/^~/, homedir()) ?? SCHEDULED_DIR;
+  const REPO_DIR = resolve(SCHEDULED_DIR, "..");
+  const raw = task.working_directory ?? ".";
+  const workingDir = raw === "." ? REPO_DIR : raw.replace(/^~/, homedir());
   const model = task.model ?? "sonnet";
   const prompt = task.prompt ?? "";
 
