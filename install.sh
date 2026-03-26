@@ -46,5 +46,8 @@ echo "  $CLAUDE_DIR/settings.json -> $REPO_DIR/settings.json"
 if [ -d "$REPO_DIR/scheduled" ]; then
   echo ""
   echo "Installing scheduled tasks..."
-  (cd "$REPO_DIR/scheduled" && npm install && bash scripts/install.sh)
+  if [ ! -d "$REPO_DIR/scheduled/node_modules" ]; then
+    (cd "$REPO_DIR/scheduled" && npm install)
+  fi
+  bash "$REPO_DIR/scheduled/scripts/install.sh"
 fi

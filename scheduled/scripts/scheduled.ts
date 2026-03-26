@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, readdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, unlinkSync, readdirSync } from "fs";
 import { execSync, spawnSync } from "child_process";
 import { resolve, dirname, basename } from "path";
 import { homedir } from "os";
@@ -171,14 +171,7 @@ function run(taskName: string): void {
   const taskFile = [
     resolve(TASKS_DIR, `${taskName}.yaml`),
     resolve(TASKS_DIR, `${taskName}.yml`),
-  ].find((f) => {
-    try {
-      readFileSync(f);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  ].find((f) => existsSync(f));
 
   if (!taskFile) {
     console.error(`Task not found: ${taskName}`);

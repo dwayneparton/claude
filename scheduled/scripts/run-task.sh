@@ -11,4 +11,4 @@ fi
 # Ensure PATH includes common locations for claude CLI
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.npm-global/bin:$PATH"
 
-npx --prefix "$SCHEDULED_DIR" tsx "$SCHEDULED_DIR/scripts/scheduled.ts" run "$TASK_NAME"
+"$SCHEDULED_DIR/node_modules/.bin/tsx" "$SCHEDULED_DIR/scripts/scheduled.ts" run "$TASK_NAME"
