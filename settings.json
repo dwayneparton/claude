@@ -1,12 +1,5 @@
 {
   "model": "opus[1m]",
-  "enabledPlugins": {
-    "ralph-loop@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
-    "clangd-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true
-  },
-  "alwaysThinkingEnabled": true,
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -61,5 +54,12 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "alwaysThinkingEnabled": true
 }

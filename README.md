@@ -1,6 +1,6 @@
 # Claude Code Config
 
-Version-controlled configuration for [Claude Code](https://claude.com/claude-code) — agents, skills, agent memory, and settings.
+Version-controlled configuration for [Claude Code](https://claude.com/claude-code) — agents, skills, commands, and settings that define how I work with AI.
 
 ## Setup
 
@@ -12,37 +12,45 @@ cd ~/Documents/GitHub/claude
 ./install.sh
 ```
 
-The script backs up any existing files before replacing them with symlinks.
+The script backs up any existing files before replacing them with symlinks. Changes take effect immediately.
 
-## Structure
+## What's Here
 
-```
-├── agents/              # Custom agent definitions
-│   ├── api-ergonomics-reviewer.md
-│   └── refactor-scout.md
-├── agent-memory/        # Persistent agent memory
-│   └── refactor-scout/
-├── skills/              # Custom slash command skills
-│   ├── github-pr/
-│   └── github-resolve/
-├── settings.json        # Global Claude Code settings
-├── install.sh           # Symlink installer
-└── .gitignore
-```
+### Agents
 
-## What's Included
+Specialized agents that handle distinct parts of the workflow:
 
-| Component | Description |
-|-----------|-------------|
-| **agents/api-ergonomics-reviewer** | Reviews public API surfaces for DX quality, naming consistency, and usability |
-| **agents/refactor-scout** | Identifies refactoring opportunities, duplication, and cohesion issues |
-| **skills/github-pr** | `/github-pr` — creates a branch, runs checks, opens a PR |
-| **skills/github-resolve** | `/github-resolve` — resolves PR review comments and replies on GitHub |
+- **dev** — Orchestrates the full software development lifecycle from requirements through PR
+- **planner** — Breaks down features into actionable, phased implementation plans
+- **requirements-analyzer** — Extracts and researches requirements from GitHub issues
+- **tech-scout** — Researches and recommends libraries and technologies for a given problem
+- **practicality** — Grounds ambitious plans into practical, shippable steps
+- **refactor-scout** — Identifies refactoring opportunities, duplication, and cohesion issues
+- **api-ergonomics-reviewer** — Reviews public API surfaces for developer experience quality
+
+### Skills
+
+Slash commands that automate common workflows:
+
+- `/sdlc` — End-to-end development lifecycle: branch, requirements, plan, implement, PR, review, CI
+- `/spec-writer` — Writes feature specification documents using an RFC-inspired format
+- `/github-pr` — Creates a branch, runs checks, and opens a PR
+- `/github-resolve` — Resolves PR review comments and replies on GitHub
+- `/github-pr-review-check` — Checks GitHub for reviews requiring approval
+- `/test-coverage` — Identifies test gaps and writes targeted tests
+- `/simplify` — Reviews changed code for reuse, quality, and efficiency
+
+### Commands
+
+- `/team` — Spawns a coordinated agent team to implement a spec or multi-task feature in parallel
 
 ## Adding New Config
 
-- **Agent**: Create a new `.md` file in `agents/` with the required frontmatter (`name`, `description`, `model`)
-- **Skill**: Create a new directory in `skills/<name>/` with a `SKILL.md` file
+- **Agent**: Add a `.md` file in `agents/` with the required frontmatter
+- **Skill**: Add a directory in `skills/<name>/` with a `SKILL.md` file
+- **Command**: Add a `.md` file in `commands/`
 - **Settings**: Edit `settings.json` directly
 
-Changes take effect immediately since `~/.claude` points to this repo via symlinks.
+## Inspired By
+
+- [fx/cc](https://github.com/fx/cc) — Claude Code configuration that inspired several agents and the SDLC workflow skill
