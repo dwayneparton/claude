@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Public Repository — No Secrets or PII
+
+This repo is **public**. Never commit secrets, credentials, API keys, tokens, or personally identifiable information. This includes absolute paths containing usernames (e.g., `/Users/jane/...`) — use `~` or relative paths instead. When adding scheduled tasks, agent memory, or any config that references external systems, ensure no sensitive values are embedded. If a value must be secret, reference it via environment variable, not inline.
+
 ## What This Repo Is
 
 This is a version-controlled configuration repo for Claude Code. It defines agents, skills, commands, settings, and scheduled tasks that get installed via `install.sh`. Config is symlinked into `~/.claude`; scheduled tasks are registered as macOS Launch Agents. Changes to config take effect immediately after symlinking.
