@@ -25,5 +25,8 @@ scheduled/plists/
 scheduled/logs/
 scheduled/node_modules/
 
+# Environment
+.env
+
 # OS
 .DS_Store

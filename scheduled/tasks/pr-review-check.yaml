@@ -39,9 +39,9 @@ prompt: |
 
   ## 3. Send Slack Summary
 
-  After completing the above, send me a Slack message summarizing:
+  After completing the above, use the mcp__claude_ai_Slack__slack_send_message tool to post the summary to the channel ID in the $SLACK_CHANNEL_ID environment variable. The summary should include:
   - PRs awaiting my review (with links)
   - Dependabot PRs that were approved/merged
   - Any errors encountered
 
-  Keep the message concise and well-formatted.
+  Keep the message concise and well-formatted using Slack mrkdwn syntax.
