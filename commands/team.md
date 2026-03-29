@@ -26,13 +26,18 @@ Produce a task map: which tasks exist, their dependencies, and which teammate ow
 
 1. **Create the team** with `TeamCreate` (params: `team_name`, `description`).
 2. **Create tasks** with `TaskCreate` for every task from Step 0. Use `TaskUpdate` to set dependencies (`addBlockedBy`/`addBlocks`) so work proceeds in the correct order.
-3. **Spawn teammates** with the `Agent` tool — set `team_name` to match the team and `name` to a descriptive agent name (e.g., `"schema-agent"`). Use `subagent_type: "dev"` and `mode: "plan"` for complex or risky tasks.
+3. **Spawn teammates** with the `Agent` tool — set `team_name` to match the team and `name` to a descriptive agent name (e.g., `"schema-agent"`). Use `subagent_type: "dev"`.
 
-Start with 3-5 teammates. Each teammate prompt MUST include:
+Start with 3-5 teammates. Default to `mode: "auto"` — only use `mode: "plan"` when a teammate's task touches shared interfaces, database schemas, or critical infrastructure where a wrong approach is expensive to undo.
+
+Each teammate prompt MUST include:
 - Exactly what to implement (files, components, endpoints)
 - Acceptance criteria
 - Which spec task(s) it maps to (if from a spec)
 - Instruction to use `/sdlc` skill and follow ALL steps in order
+- Team context: "You are on a team. Multiple teammates may have PRs open simultaneously — coordinate via `SendMessage` and check `TaskList` for status. To discover teammates, read `~/.claude/teams/{team-name}/config.json`."
+
+**Peer coordination:** If two teammates depend on each other (e.g., one builds an API the other consumes), tell both about the dependency in their spawn prompts and instruct them to message each other directly by name when their interface is ready or changes.
 
 Teammates check `TaskList`, self-claim unblocked tasks via `TaskUpdate` (set `owner`), and mark tasks completed when done. When a dependency completes, blocked tasks unblock automatically.
 
