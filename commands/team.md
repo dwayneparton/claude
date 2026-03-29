@@ -1,6 +1,8 @@
 # Team Command
 
-Spawn a coordinated agent team to implement a spec or multi-task feature. The main agent (you) acts strictly as coordinator — no code, no commits, only delegation and quality control.
+Spawn a coordinated agent team to implement a spec or multi-task feature. You act as the team lead — no code, no commits, only delegation and quality control.
+
+Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` enabled in settings.json.
 
 ## Usage
 
@@ -21,19 +23,48 @@ Spawn a coordinated agent team to implement a spec or multi-task feature. The ma
 Identify:
 - Total tasks and their dependencies
 - Which tasks can run in parallel vs. which must be sequential
-- A sensible agent-to-task mapping (1 agent can own 1-3 related tasks)
+- A sensible teammate-to-task mapping (1 teammate can own 1-3 related tasks)
+- Aim for 5-6 tasks per teammate
 
-### STEP 1: Create the Team
+### STEP 1: Create the Agent Team
+
+Tell Claude to create a team in natural language. Describe the team structure, roles, and what each teammate should focus on. Claude handles spawning teammates and setting up the shared task list.
+
+Example prompt to create the team:
 
 ```
-TeamCreate tool:
-  team_name: "<short-kebab-name>"  # e.g., "auth-feature", "admin-ui"
-  description: "<what the team is building>"
+Create an agent team called "<short-name>" to implement <description>.
+
+Spawn teammates:
+- "<name>-agent": <what they own — files, components, endpoints>
+- "<name>-agent": <what they own>
+- "<name>-agent": <what they own>
+
+Each teammate should use the /sdlc skill and follow ALL steps in order.
+Require plan approval before any teammate makes changes.
 ```
 
-### STEP 2: Create and Organize Tasks
+**Key parameters to specify:**
+- Number of teammates and their names
+- What each teammate owns (files, components, areas)
+- Model to use for teammates (e.g., "Use Sonnet for each teammate")
+- Whether to require plan approval before implementation
 
-Use `TaskCreate` for every task identified in Step 0. Set up dependencies with `TaskUpdate` (`addBlockedBy`/`addBlocks`) so agents work in the correct order.
+### STEP 2: Set Up Tasks
+
+The shared task list coordinates work across the team. Create tasks for every piece of work identified in Step 0. Tasks have three states: pending, in progress, and completed. Tasks can depend on other tasks — blocked tasks won't be claimed until dependencies complete.
+
+Tell the lead to create tasks with clear descriptions:
+
+```
+Create tasks for the team:
+1. "<task title>" — <what to implement, acceptance criteria, which spec task it maps to>
+   Depends on: none
+2. "<task title>" — <what to implement, acceptance criteria>
+   Depends on: task 1
+3. "<task title>" — <what to implement, acceptance criteria>
+   Depends on: none
+```
 
 **Task descriptions MUST include:**
 - Exactly what to implement (files, components, endpoints)
@@ -41,74 +72,36 @@ Use `TaskCreate` for every task identified in Step 0. Set up dependencies with `
 - Which spec task(s) it maps to (if from a spec)
 - Explicit instruction: "Use `/sdlc` skill and follow ALL steps in order"
 
-### STEP 3: Spawn Teammate Agents
+Teammates self-claim unblocked tasks from the shared list. When a teammate completes a task that others depend on, blocked tasks unblock automatically.
 
-Spawn agents using the Task tool. Each agent gets a clear name and assignment.
+### STEP 3: Coordinate (Your Main Loop)
 
-```
-Task tool:
-  subagent_type: "dev"
-  team_name: "<team-name>"
-  name: "<descriptive-agent-name>"  # e.g., "schema-agent", "ui-agent"
-  prompt: "You are a teammate on the <team-name> team.
+**You are the team lead. Your ONLY actions are:**
 
-           YOUR TASK: <task description from TaskCreate>
-
-           MANDATORY WORKFLOW:
-           1. Load the SDLC skill: Skill tool: skill='sdlc'
-           2. Follow EVERY step of the SDLC workflow in order
-           3. Mark your spec task(s) as done in the tracking doc
-           4. Include the task completion change in your PR
-           5. Create your PR
-           6. Wait for and resolve Copilot/CodeRabbit review feedback
-           7. Wait for and resolve CI check failures
-           8. Send a message to the coordinator when your PR is ready
-
-           CONTEXT: You are working in a team. Multiple agents may have
-           PRs open simultaneously — this is expected. The SDLC's solo
-           single-PR rule does not apply in team context.
-
-           CRITICAL RULES:
-           - You MUST follow full SDLC progression (requirements -> plan -> implement -> PR -> review -> CI)
-           - You MUST NOT skip the review or CI steps
-           - You MUST NOT mark your PR as ready-for-review yourself
-           - You MUST send a message when done with PR URL and summary"
-  description: "<3-5 word summary>"
-  mode: "bypassPermissions"
-```
-
-**Parallelization rules:**
-- Spawn agents for independent tasks simultaneously (multiple Task calls in one message)
-- For dependent tasks, wait until the blocking agent completes before spawning the next
-- Assign blocked tasks to agents only after their dependencies are resolved
-
-### STEP 4: Coordinate (Your Main Loop)
-
-**You are the coordinator. Your ONLY actions are:**
-
-1. **Monitor** — Watch for teammate messages reporting PR completion
-2. **Inspect** — Review each PR for completeness:
+1. **Monitor** — Watch for teammate messages reporting PR completion. Use `Shift+Down` to cycle through teammates in in-process mode, or click panes in split-pane mode.
+2. **Steer** — Message teammates directly to redirect approaches that aren't working or give additional context.
+3. **Inspect** — Review each PR for completeness:
    ```bash
    gh pr view <NUMBER> --json title,body,additions,deletions,files,reviews,statusCheckRollup
    gh pr diff <NUMBER>
    ```
-3. **Validate** — Verify before marking ready:
+4. **Validate** — Verify before marking ready:
    - [ ] Implementation matches the spec/task requirements
    - [ ] Copilot/CodeRabbit feedback has been received AND resolved
    - [ ] CI checks are passing
    - [ ] Spec tasks marked complete in PR
    - [ ] PR description is clear and accurate
-4. **Report** — When ALL checks pass, notify the user that the PR is ready for their review and merge
-5. **Unblock** — After a dependency PR is merged by the user, notify waiting agents or spawn agents for newly-unblocked tasks
-6. **Repeat** — Continue until all tasks are complete
+5. **Report** — When ALL checks pass, notify the user that the PR is ready for their review and merge
+6. **Unblock** — After a dependency PR is merged by the user, notify waiting teammates
+7. **Repeat** — Continue until all tasks are complete
 
-### STEP 5: Shutdown
+### STEP 4: Shutdown
 
 When all tasks are complete and all PRs are ready (or merged by the user):
 
 1. Verify all spec tasks are marked done
-2. Send shutdown requests to all teammates
-3. Clean up the team with `TeamDelete`
+2. Ask all teammates to shut down (teammates can approve or reject with explanation)
+3. Clean up the team via the lead (teammates should NOT run cleanup)
 4. Report final summary to user:
    - List all PRs with status (ready for review / merged)
    - Note any PRs still awaiting user merge
@@ -116,19 +109,27 @@ When all tasks are complete and all PRs are ready (or merged by the user):
 
 ---
 
-## Coordinator Rules (NON-NEGOTIABLE)
+## Team Lead Rules (NON-NEGOTIABLE)
 
-- **NEVER write code yourself** — all implementation goes through `dev` agents
-- **NEVER create branches or commits** — agents handle this via SDLC
+- **NEVER write code yourself** — all implementation goes through teammates
+- **NEVER create branches or commits** — teammates handle this via SDLC
 - **NEVER skip PR inspection** — every PR gets reviewed before marking ready
 - **NEVER merge PRs** — PRs are delivered for human review and merge
 - **NEVER mark a teammate's PR as ready** until you've inspected it
-- **ALWAYS ensure agents follow full SDLC** — if an agent skips steps, send them back
+- **ALWAYS ensure teammates follow full SDLC** — if a teammate skips steps, message them directly
 
-## Handling Agent Issues
+## Handling Teammate Issues
 
-If an agent reports problems or skips SDLC steps:
+If a teammate reports problems or skips SDLC steps:
 
-1. **Send a message** telling them exactly what step they missed
+1. **Message them directly** telling them exactly what step they missed
 2. **Do NOT do the work for them** — they must follow the workflow
-3. If an agent is stuck after 2 retries, report to user and ask for guidance
+3. If a teammate is stuck after 2 retries, report to user and ask for guidance
+4. If a teammate stops on an error, either give them instructions to recover or spawn a replacement
+
+## Tips
+
+- **Avoid file conflicts** — break work so each teammate owns different files
+- **Start with 3-5 teammates** — more adds coordination overhead with diminishing returns
+- **Require plan approval** for complex or risky tasks so you can review before implementation
+- **Use broadcast sparingly** — it messages all teammates and costs scale with team size
