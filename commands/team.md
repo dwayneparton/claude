@@ -24,39 +24,22 @@ Produce a task map: which tasks exist, their dependencies, and which teammate ow
 
 ### STEP 1: Create Team and Tasks
 
-Create the team and set up tasks in natural language. Start with 3-5 teammates. Use plan approval for complex or risky tasks.
+1. **Create the team** with `TeamCreate` (params: `team_name`, `description`).
+2. **Create tasks** with `TaskCreate` for every task from Step 0. Use `TaskUpdate` to set dependencies (`addBlockedBy`/`addBlocks`) so work proceeds in the correct order.
+3. **Spawn teammates** with the `Agent` tool — set `team_name` to match the team and `name` to a descriptive agent name (e.g., `"schema-agent"`). Use `subagent_type: "dev"` and `mode: "plan"` for complex or risky tasks.
 
-Example:
-
-```text
-Create an agent team called "auth-feature" to implement OAuth authentication.
-
-Spawn teammates:
-- "schema-agent": owns database migrations and models (src/db/)
-- "api-agent": owns API endpoints and middleware (src/routes/, src/middleware/)
-- "ui-agent": owns login/signup UI components (src/components/auth/)
-
-Each teammate must use the /sdlc skill and follow ALL steps in order.
-Require plan approval before any teammate makes changes.
-
-Tasks:
-1. "Add user and session tables" — schema-agent. Acceptance: migrations run, models exported.
-2. "Implement OAuth endpoints" — api-agent. Depends on: task 1. Acceptance: /auth/login and /auth/callback work.
-3. "Build login UI" — ui-agent. Depends on: task 2. Acceptance: login flow completes end-to-end.
-```
-
-**Every task description MUST include:**
+Start with 3-5 teammates. Each teammate prompt MUST include:
 - Exactly what to implement (files, components, endpoints)
 - Acceptance criteria
 - Which spec task(s) it maps to (if from a spec)
-- Instruction to use `/sdlc` skill
+- Instruction to use `/sdlc` skill and follow ALL steps in order
 
-Teammates self-claim unblocked tasks. When a dependency completes, blocked tasks unblock automatically.
+Teammates check `TaskList`, self-claim unblocked tasks via `TaskUpdate` (set `owner`), and mark tasks completed when done. When a dependency completes, blocked tasks unblock automatically.
 
 ### STEP 2: Coordinate (Your Main Loop)
 
-1. **Monitor** — Watch for teammate messages. Use `Shift+Down` to cycle through teammates (in-process mode) or click panes (split-pane mode).
-2. **Steer** — Message teammates directly to redirect approaches or give context.
+1. **Monitor** — Teammate messages arrive automatically. Use `Shift+Down` to cycle through teammates (in-process mode) or click panes (split-pane mode).
+2. **Steer** — Use `SendMessage` to redirect approaches or give context to specific teammates (by name).
 3. **Inspect** — Review each completed PR:
    ```bash
    gh pr view <NUMBER> --json title,body,additions,deletions,files,reviews,statusCheckRollup
@@ -73,9 +56,9 @@ Teammates self-claim unblocked tasks. When a dependency completes, blocked tasks
 
 ### STEP 3: Shutdown
 
-1. Verify all tasks are done
-2. Ask all teammates to shut down
-3. Clean up the team (only the lead runs cleanup — teammates must NOT)
+1. Verify all tasks are done via `TaskList`
+2. Send `SendMessage` with `{type: "shutdown_request"}` to each teammate
+3. After all teammates have shut down, call `TeamDelete` to clean up team and task files
 4. Report final summary: all PRs with status, any awaiting merge, what was delivered
 
 ---
