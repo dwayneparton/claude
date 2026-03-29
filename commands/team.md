@@ -62,7 +62,7 @@ Teammates check `TaskList`, self-claim unblocked tasks via `TaskUpdate` (set `ow
 ### STEP 3: Shutdown
 
 1. Verify all tasks are done via `TaskList`
-2. Send `SendMessage` with `{type: "shutdown_request"}` to each teammate
+2. Send `SendMessage` with `{type: "shutdown_request"}` to each teammate individually (broadcast does not support structured messages)
 3. After all teammates have shut down, call `TeamDelete` to clean up team and task files
 4. Report final summary: all PRs with status, any awaiting merge, what was delivered
 
