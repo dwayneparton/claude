@@ -183,7 +183,23 @@ function run(taskName: string): void {
   const raw = task.working_directory ?? ".";
   const workingDir = raw === "." ? REPO_DIR : raw.replace(/^~/, homedir());
   const model = task.model ?? "sonnet";
-  const prompt = task.prompt ?? "";
+  const unresolved: string[] = [];
+  const prompt = (task.prompt ?? "").replace(
+    /\$([A-Z_][A-Z0-9_]*)/g,
+    (_, name: string) => {
+      const value = process.env[name];
+      if (value === undefined) unresolved.push(name);
+      return value ?? `$${name}`;
+    }
+  );
+
+  if (unresolved.length > 0) {
+    console.error(
+      `Missing environment variables: ${unresolved.join(", ")}. ` +
+      `Set them in .env or via launchctl setenv.`
+    );
+    process.exit(1);
+  }
 
   const now = new Date().toISOString();
   console.log(`[${now}] Starting task: ${taskName}`);
