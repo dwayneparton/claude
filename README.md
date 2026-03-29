@@ -44,6 +44,17 @@ Slash commands that automate common workflows:
 - `/spike` — Timeboxed exploration to answer technical questions or validate approaches
 - `/vision` — Creates and maintains project vision documents with success criteria and guiding principles
 
+### Hooks
+
+Deterministic automation that runs at specific points in Claude Code's lifecycle. Unlike CLAUDE.md instructions (advisory), hooks guarantee the action happens.
+
+- **SessionStart (compact)** — Re-injects critical SDLC context after conversation compaction to prevent agent drift
+- **PreToolUse (Edit|Write)** — Blocks edits to protected files (`.env`, lock files, `.git/`)
+- **PostToolUse (Edit|Write)** — Auto-formats edited files with Prettier
+- **Stop (prompt)** — Validates all requested tasks are complete before allowing agent to stop
+
+Hook scripts live in `hooks/`. The `protect-files.sh` script defines which file patterns are blocked.
+
 ### Commands
 
 - `/team` — Spawns a coordinated agent team to implement a spec or multi-task feature in parallel
