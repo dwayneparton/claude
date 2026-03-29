@@ -35,6 +35,7 @@ Specialized agents that handle distinct parts of the workflow:
 Slash commands that automate common workflows:
 
 - `/sdlc` — End-to-end development lifecycle: branch, requirements, plan, implement, PR, review, CI
+- `/debug` — Structured debugging: capture symptom, reproduce, hypothesize, narrow, verify root cause, hand off to fix
 - `/spec-writer` — Writes feature specification documents using an RFC-inspired format
 - `/github-pr` — Creates a branch, runs checks, and opens a PR
 - `/github-resolve` — Resolves PR review comments and replies on GitHub

@@ -1,6 +1,7 @@
 # Claude Code managed/ephemeral files - don't version these
 history.jsonl
 debug/
+!skills/debug/
 cache/
 paste-cache/
 plans/
