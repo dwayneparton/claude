@@ -20,116 +20,70 @@ Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` enabled in settings.json.
 2. **If given an issue URL:** Fetch it with `gh issue view`.
 3. **If given a description:** Break it into discrete, parallelizable tasks.
 
-Identify:
-- Total tasks and their dependencies
-- Which tasks can run in parallel vs. which must be sequential
-- A sensible teammate-to-task mapping (1 teammate can own 1-3 related tasks)
-- Aim for 5-6 tasks per teammate
+Produce a task map: which tasks exist, their dependencies, and which teammate owns what (1 teammate can own 1-3 related tasks, aim for 5-6 tasks per teammate). Break work so each teammate owns different files to avoid conflicts.
 
-### STEP 1: Create the Agent Team
+### STEP 1: Create Team and Tasks
 
-Tell Claude to create a team in natural language. Describe the team structure, roles, and what each teammate should focus on. Claude handles spawning teammates and setting up the shared task list.
+Create the team and set up tasks in natural language. Start with 3-5 teammates. Use plan approval for complex or risky tasks.
 
-Example prompt to create the team:
+Example:
 
-```
-Create an agent team called "<short-name>" to implement <description>.
+```text
+Create an agent team called "auth-feature" to implement OAuth authentication.
 
 Spawn teammates:
-- "<name>-agent": <what they own — files, components, endpoints>
-- "<name>-agent": <what they own>
-- "<name>-agent": <what they own>
+- "schema-agent": owns database migrations and models (src/db/)
+- "api-agent": owns API endpoints and middleware (src/routes/, src/middleware/)
+- "ui-agent": owns login/signup UI components (src/components/auth/)
 
-Each teammate should use the /sdlc skill and follow ALL steps in order.
+Each teammate must use the /sdlc skill and follow ALL steps in order.
 Require plan approval before any teammate makes changes.
+
+Tasks:
+1. "Add user and session tables" — schema-agent. Acceptance: migrations run, models exported.
+2. "Implement OAuth endpoints" — api-agent. Depends on: task 1. Acceptance: /auth/login and /auth/callback work.
+3. "Build login UI" — ui-agent. Depends on: task 2. Acceptance: login flow completes end-to-end.
 ```
 
-**Key parameters to specify:**
-- Number of teammates and their names
-- What each teammate owns (files, components, areas)
-- Model to use for teammates (e.g., "Use Sonnet for each teammate")
-- Whether to require plan approval before implementation
-
-### STEP 2: Set Up Tasks
-
-The shared task list coordinates work across the team. Create tasks for every piece of work identified in Step 0. Tasks have three states: pending, in progress, and completed. Tasks can depend on other tasks — blocked tasks won't be claimed until dependencies complete.
-
-Tell the lead to create tasks with clear descriptions:
-
-```
-Create tasks for the team:
-1. "<task title>" — <what to implement, acceptance criteria, which spec task it maps to>
-   Depends on: none
-2. "<task title>" — <what to implement, acceptance criteria>
-   Depends on: task 1
-3. "<task title>" — <what to implement, acceptance criteria>
-   Depends on: none
-```
-
-**Task descriptions MUST include:**
+**Every task description MUST include:**
 - Exactly what to implement (files, components, endpoints)
 - Acceptance criteria
 - Which spec task(s) it maps to (if from a spec)
-- Explicit instruction: "Use `/sdlc` skill and follow ALL steps in order"
+- Instruction to use `/sdlc` skill
 
-Teammates self-claim unblocked tasks from the shared list. When a teammate completes a task that others depend on, blocked tasks unblock automatically.
+Teammates self-claim unblocked tasks. When a dependency completes, blocked tasks unblock automatically.
 
-### STEP 3: Coordinate (Your Main Loop)
+### STEP 2: Coordinate (Your Main Loop)
 
-**You are the team lead. Your ONLY actions are:**
-
-1. **Monitor** — Watch for teammate messages reporting PR completion. Use `Shift+Down` to cycle through teammates in in-process mode, or click panes in split-pane mode.
-2. **Steer** — Message teammates directly to redirect approaches that aren't working or give additional context.
-3. **Inspect** — Review each PR for completeness:
+1. **Monitor** — Watch for teammate messages. Use `Shift+Down` to cycle through teammates (in-process mode) or click panes (split-pane mode).
+2. **Steer** — Message teammates directly to redirect approaches or give context.
+3. **Inspect** — Review each completed PR:
    ```bash
    gh pr view <NUMBER> --json title,body,additions,deletions,files,reviews,statusCheckRollup
    gh pr diff <NUMBER>
    ```
-4. **Validate** — Verify before marking ready:
-   - [ ] Implementation matches the spec/task requirements
-   - [ ] Copilot/CodeRabbit feedback has been received AND resolved
-   - [ ] CI checks are passing
-   - [ ] Spec tasks marked complete in PR
-   - [ ] PR description is clear and accurate
-5. **Report** — When ALL checks pass, notify the user that the PR is ready for their review and merge
-6. **Unblock** — After a dependency PR is merged by the user, notify waiting teammates
-7. **Repeat** — Continue until all tasks are complete
+4. **Validate** before marking ready:
+   - [ ] Implementation matches spec/task requirements
+   - [ ] Automated review feedback resolved
+   - [ ] CI checks passing
+   - [ ] PR description is clear
+5. **Report** — Notify user when a PR is ready for review
+6. **Unblock** — After user merges a dependency PR, notify waiting teammates
+7. **Repeat** until all tasks complete
 
-### STEP 4: Shutdown
+### STEP 3: Shutdown
 
-When all tasks are complete and all PRs are ready (or merged by the user):
-
-1. Verify all spec tasks are marked done
-2. Ask all teammates to shut down (teammates can approve or reject with explanation)
-3. Clean up the team via the lead (teammates should NOT run cleanup)
-4. Report final summary to user:
-   - List all PRs with status (ready for review / merged)
-   - Note any PRs still awaiting user merge
-   - Summarize what was delivered
+1. Verify all tasks are done
+2. Ask all teammates to shut down
+3. Clean up the team (only the lead runs cleanup — teammates must NOT)
+4. Report final summary: all PRs with status, any awaiting merge, what was delivered
 
 ---
 
 ## Team Lead Rules (NON-NEGOTIABLE)
 
-- **NEVER write code yourself** — all implementation goes through teammates
+- **NEVER write code** — all implementation goes through teammates
 - **NEVER create branches or commits** — teammates handle this via SDLC
 - **NEVER skip PR inspection** — every PR gets reviewed before marking ready
-- **NEVER merge PRs** — PRs are delivered for human review and merge
-- **NEVER mark a teammate's PR as ready** until you've inspected it
-- **ALWAYS ensure teammates follow full SDLC** — if a teammate skips steps, message them directly
-
-## Handling Teammate Issues
-
-If a teammate reports problems or skips SDLC steps:
-
-1. **Message them directly** telling them exactly what step they missed
-2. **Do NOT do the work for them** — they must follow the workflow
-3. If a teammate is stuck after 2 retries, report to user and ask for guidance
-4. If a teammate stops on an error, either give them instructions to recover or spawn a replacement
-
-## Tips
-
-- **Avoid file conflicts** — break work so each teammate owns different files
-- **Start with 3-5 teammates** — more adds coordination overhead with diminishing returns
-- **Require plan approval** for complex or risky tasks so you can review before implementation
-- **Use broadcast sparingly** — it messages all teammates and costs scale with team size
+- **NEVER merge PRs** — deliver for human review and merge
+- **ALWAYS ensure teammates follow full SDLC** — if a teammate skips steps, message them directly with what they missed. If stuck after 2 retries, report to user. If stopped on error, give recovery instructions or spawn a replacement.
