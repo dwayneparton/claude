@@ -1,6 +1,27 @@
 {
   "model": "opus[1m]",
-  "hooks": {},
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\033]0;🔐 Claude(permission?)\\007' > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\033]0;📬 Claude(notification)\\007' > /dev/tty"
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true,
     "clangd-lsp@claude-plugins-official": true,
@@ -10,5 +31,9 @@
   "alwaysThinkingEnabled": true,
   "permissions": {
     "allow": ["mcp__claude_ai_Slack__slack_send_message", "Bash(gh:*)"]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh"
   }
 }
