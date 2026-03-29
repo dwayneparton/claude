@@ -73,9 +73,11 @@ The `/spec-writer` skill produces numbered spec files in `specs/` using an RFC-i
 
 The `/vision` skill creates and maintains a project vision document (`docs/VISION.md` or equivalent) that defines purpose, success criteria, guiding principles, and boundaries. The `vision` agent uses this skill and can operate in three modes: **create** (draft a new vision), **update** (revise an existing one), or **alignment check** (evaluate whether proposed work serves the vision). The vision document is referenced from `CLAUDE.md` so all agents can align their work against it.
 
-### Exploration
+### Exploration & Debugging
 
 The `/spike` skill supports structured, timeboxed exploration — answering "can we?" or "should we?" before committing to a direction. Spikes produce findings (saved to `spikes/`), not production code. They connect curiosity to outcomes.
+
+The `/debug` skill provides structured diagnosis for production issues and errors — capture symptom, reproduce, hypothesize with parallel investigation, narrow to root cause, then hand off to `/sdlc` for the fix. Use `/debug` when something is broken; use `/spike` when exploring something new.
 
 ### Scheduled Tasks
 
