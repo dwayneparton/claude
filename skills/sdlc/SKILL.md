@@ -87,6 +87,8 @@ Branch types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
 **Skip for Small tasks — proceed directly to Step 4.**
 
+**Check for existing specs first.** If a spec file was referenced in the task description, or if a relevant spec exists in `specs/` (e.g., from `/spec-writer`), read it. A spec that covers the requirements and has a task checklist satisfies this step — link to it and proceed directly to Step 3 (or Step 4 if the spec also includes a detailed plan).
+
 Launch the requirements-analyzer agent:
 
 ```

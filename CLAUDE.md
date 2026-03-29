@@ -45,6 +45,16 @@ The SDLC steps invoke other agents and skills in sequence:
 - Step 5: `/github-pr` skill
 - Step 6.3: `/github-resolve` skill
 
+### Advisory Agents
+
+Three agents provide decision support from different angles. Use the right one for the question being asked:
+
+- **`consultant`** — "Is this *decision* sound?" Evaluates trade-offs, surfaces counterpoints, and stress-tests a specific choice (e.g., "Should we switch from Postgres to MongoDB?"). Use when committing to a direction that's hard to reverse.
+- **`practicality`** — "Is this *plan* shippable?" Grounds ambitious plans into incremental, deliverable steps (e.g., "This 6-month roadmap needs to ship in 4 weeks"). Use when scope is creeping or discussions are too abstract.
+- **`vision`** — "Does this *work* serve the strategic direction?" Checks whether proposed features, fixes, or refactors align with the project's north star (e.g., "Does adding this feature fit our vision?"). Use when direction feels unclear or priorities conflict.
+
+When multiple could apply: start with the one that matches the user's immediate need. A user asking "should we?" wants the consultant. A user saying "how do we ship this?" wants practicality. A user wondering "does this matter?" wants vision.
+
 ### Spec-Driven Development
 
 The `/spec-writer` skill produces numbered spec files in `specs/` using an RFC-inspired format with type contracts, behavioral specs (RFC 2119), and task checklists. Specs invoke both `api-ergonomics-reviewer` and `consultant` agents during review to ensure design decisions are stress-tested before finalizing. Specs feed into `/sdlc` or `/team` for implementation.
