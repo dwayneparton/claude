@@ -16,7 +16,7 @@ This is a version-controlled configuration repo for Claude Code. It defines agen
 ./install.sh
 ```
 
-Creates symlinks from this repo into `~/.claude` for: `agents/`, `skills/`, `commands/`, `agent-memory/`, and `settings.json`. Also installs scheduled tasks as macOS Launch Agents. Backs up existing files before replacing.
+Creates symlinks from this repo into `~/.claude` for: `agents/`, `skills/`, `commands/`, `hooks/`, `agent-memory/`, and `settings.json`. Also installs scheduled tasks as macOS Launch Agents. Backs up existing files before replacing.
 
 ## Architecture
 
@@ -27,7 +27,17 @@ Claude Code reads config from `~/.claude`. This repo is the source of truth — 
 - **`agents/<name>.md`** — Agent definitions with YAML frontmatter (`name`, `description`, `color`). Referenced by `subagent_type` in Agent tool calls.
 - **`skills/<name>/SKILL.md`** — Skill definitions with YAML frontmatter (`name`, `description`). Invoked via `Skill tool: skill="<name>"`.
 - **`commands/<name>.md`** — Slash commands. Invoked via `/<name>` in conversation.
+- **`hooks/<name>.sh`** — Hook scripts called by settings.json hooks. Deterministic enforcement, not advisory.
 - **`settings.json`** — Global settings: model, hooks, plugins.
+
+### Structural Hooks
+
+Hooks make rules deterministic — they run automatically at specific lifecycle points, unlike CLAUDE.md instructions which the LLM may forget after compaction.
+
+- **Post-compaction context** (`SessionStart`, matcher: `compact`) — Re-injects critical SDLC rules after conversation compaction. Prevents agent drift in long sessions.
+- **Protected files** (`PreToolUse`, matcher: `Edit|Write`) — Blocks edits to `.env`, lock files, and `.git/`. Defined in `hooks/protect-files.sh`.
+- **Auto-format** (`PostToolUse`, matcher: `Edit|Write`) — Runs Prettier on edited files. Eliminates formatting-only commits.
+- **Task completion validation** (`Stop`, type: `prompt`) — Asks a model whether all requested tasks are complete before letting the agent stop. Catches premature completion.
 
 ### Agent → Skill Pipeline
 
@@ -116,6 +126,7 @@ This config embodies specific principles that agents and skills reference:
 | Agent | `agents/<name>.md` | YAML frontmatter: `name`, `description` |
 | Skill | `skills/<name>/SKILL.md` | YAML frontmatter: `name`, `description` |
 | Command | `commands/<name>.md` | Markdown with usage and action sections |
+| Hook | `hooks/<name>.sh` + `settings.json` | Executable script; registered in settings.json `hooks` |
 | Setting | `settings.json` | Valid JSON, follows Claude Code settings schema |
 | Task | `scheduled/tasks/<name>.yaml` | YAML with `name`, `schedule`, `prompt` |
 

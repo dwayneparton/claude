@@ -23,6 +23,49 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'CRITICAL CONTEXT (re-injected after compaction): Follow SDLC skill steps IN ORDER. Never skip steps. Never merge PRs — deliver for human review. Check TaskList for current progress. If on a team, coordinate via SendMessage. Run /simplify before creating PRs.'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/protect-files.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | xargs -I{} sh -c 'npx prettier --write \"{}\" 2>/dev/null || true'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Review the conversation. Were all requested tasks completed? Check: (1) Did the user ask for something that hasn't been done yet? (2) If following SDLC, are all required steps for this task size finished? (3) If on a team, are assigned tasks marked complete? If everything is done, respond {\"ok\": true}. If not, respond {\"ok\": false, \"reason\": \"what remains to be done\"}."
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
