@@ -76,7 +76,18 @@
   },
   "alwaysThinkingEnabled": true,
   "permissions": {
-    "allow": ["mcp__claude_ai_Slack__slack_send_message", "Bash(gh:*)"]
+    "allow": [
+      "mcp__claude_ai_Slack__slack_send_message",
+      "Bash(gh:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)"
+    ]
   },
   "statusLine": {
     "type": "command",
