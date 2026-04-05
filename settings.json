@@ -1,8 +1,22 @@
 {
-  "model": "opus[1m]",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Slack__slack_send_message",
+      "Bash(gh:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)"
+    ]
+  },
+  "model": "opus[1m]",
   "hooks": {
     "PermissionRequest": [
       {
@@ -56,17 +70,11 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Review the conversation. Were all requested tasks completed? Check: (1) Did the user ask for something that hasn't been done yet? (2) If following SDLC, are all required steps for this task size finished? (3) If on a team, are assigned tasks marked complete? If everything is done, respond {\"ok\": true}. If not, respond {\"ok\": false, \"reason\": \"what remains to be done\"}."
-          }
-        ]
-      }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh"
   },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true,
@@ -75,22 +83,5 @@
     "frontend-design@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
-  "permissions": {
-    "allow": [
-      "mcp__claude_ai_Slack__slack_send_message",
-      "Bash(gh:*)",
-      "Bash(npm test:*)",
-      "Bash(npm run lint:*)",
-      "Bash(npm run build:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git status)",
-      "Bash(git fetch:*)",
-      "Bash(git stash:*)"
-    ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/statusline.sh"
-  }
+  "skipDangerousModePermissionPrompt": true
 }
