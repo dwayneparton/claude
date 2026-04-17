@@ -16,6 +16,7 @@ This skill defines the workflow for all coding tasks. Every step exists for a re
 ### Test Policy
 
 **NEVER skip tests.** If a test cannot pass:
+
 - **Fix it** — Update assertions to match correct behavior
 - **Replace it** — Write a new test that properly validates the behavior
 - **Refactor it** — Restructure to test what's actually testable
@@ -29,25 +30,15 @@ If tests require infrastructure (auth, database, external services), SET UP that
 
 ### STEP 0: Setup
 
-**Execute FIRST before anything else.**
-
-#### 0.1 GitHub Authentication
-
-```bash
-gh auth status
-```
-
-If fails: STOP. Tell user to run `gh auth login`. Do NOT proceed.
-
-#### 0.2 Gauge the Work
+#### 0.1 Gauge the Work
 
 Assess the task's complexity and blast radius. This determines how much ceremony the task needs.
 
-| Size | Examples | Blast radius | Steps |
-|------|----------|-------------|-------|
-| **Small** | Typo, config change, one-line fix, docs update, simple rename | Minimal — trivially reverted | 0 → 1 → 4 → 4.5 → 5 → 8 |
-| **Standard** | Feature, bug fix, refactor, new component, API change | Moderate — affects real behavior or multiple files | 0 → 1 → 2 → 3 → 4 → 4.25 → 4.5 → 5 → 6 → 7 → 8 |
-| **Large** | Multi-system change, breaking API, data migration, security-sensitive | High — failure is expensive and hard to reverse | All steps with extra rigor in 2-3 |
+| Size         | Examples                                                              | Blast radius                                       | Steps                                      |
+| ------------ | --------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
+| **Small**    | Typo, config change, one-line fix, docs update, simple rename         | Minimal — trivially reverted                       | 0 → 1 → 4 → 4.5 → 5 → 8                    |
+| **Standard** | Feature, bug fix, refactor, new component, API change                 | Moderate — affects real behavior or multiple files | 0 → 1 → 2 → 3 → 4 → 4.25 → 4.5 → 5 → 6 → 8 |
+| **Large**    | Multi-system change, breaking API, data migration, security-sensitive | High — failure is expensive and hard to reverse    | All steps with extra rigor in 2-3          |
 
 When in doubt, size up. It's cheaper to over-prepare than to ship a bad change.
 
@@ -64,6 +55,7 @@ git status
 ```
 
 If uncommitted changes exist:
+
 - Ask user: "Uncommitted changes found. Stash them or abort?"
 - If stash: `git stash push -m "SDLC auto-stash"`
 - If abort: STOP
@@ -107,6 +99,7 @@ Agent tool:
 ```
 
 For GitHub issues, fetch first:
+
 ```bash
 gh issue view [NUMBER] --json title,body,labels,comments
 ```
@@ -139,6 +132,7 @@ Agent tool:
 ```
 
 For GitHub issues, also update the issue:
+
 ```bash
 gh issue edit [NUMBER] --add-label "in-progress"
 gh issue comment [NUMBER] --body "[PLAN SUMMARY]"
@@ -153,12 +147,14 @@ gh issue comment [NUMBER] --body "[PLAN SUMMARY]"
 **Implement the plan.** For Standard/Large tasks, follow the plan from Step 3. For Small tasks, implement the change directly.
 
 Requirements:
+
 - Atomic commits (format: `type(scope): message`)
 - Follow existing patterns in the codebase
 - Run tests as you go
 - Do NOT create a PR yet
 
 Verify commits exist:
+
 ```bash
 git log --oneline -5
 git diff main --stat
@@ -179,6 +175,7 @@ Skill tool: skill="test-coverage"
 ```
 
 This ensures:
+
 - New code has tests covering happy path, error cases, and edge cases
 - Existing test patterns are followed
 - Coverage is verified with available tooling
@@ -200,6 +197,7 @@ Skill tool: skill="simplify"
 ```
 
 This reviews all changed code for:
+
 - **Reuse** — duplicated logic that could use existing utilities
 - **Quality** — copy-paste patterns, leaky abstractions, unnecessary nesting
 - **Efficiency** — redundant computations, missed concurrency, hot-path bloat
@@ -233,6 +231,7 @@ The skill handles pushing the branch, PR creation, and description formatting.
 #### 6.1 Self-Review
 
 Review the PR diff for:
+
 - Code quality and correctness
 - Test coverage gaps
 - Security issues
@@ -244,88 +243,15 @@ gh pr diff [NUMBER]
 
 If issues are found, fix them and commit before proceeding.
 
-#### 6.2 Request and Wait for Copilot Review (10 minute timeout)
+#### 6.2 Handle Automated Review Feedback (Copilot/CodeRabbit)
 
-**First, request Copilot review via the GitHub API:**
-
-```bash
-# Request Copilot review using JSON body format (most reliable)
-gh api --method POST /repos/{owner}/{repo}/pulls/[PR_NUMBER]/requested_reviewers \
-  --input - <<'EOF'
-{"reviewers":["copilot-pull-request-reviewer[bot]"]}
-EOF
-```
-
-**Then use the bundled script to poll for completion (10 minute timeout):**
-
-```bash
-# IMPORTANT: Use the FULL path from the skill's base directory
-bash [SKILL_BASE_DIR]/skills/sdlc/scripts/wait-for-copilot-review.sh [PR_NUMBER]
-```
-
-Script behavior:
-- Checks if Copilot review was requested
-- Polls every 60s until review is received (timeout: 600s / 10 minutes)
-- Exit 0: Review received -> **proceed to Step 6.3 immediately**
-- Exit 1: Timeout after 10 minutes -> proceed to Step 6.3 anyway
-- Exit 2: Review request not detected -> re-request using JSON body format above, then re-run script
-
-#### 6.3 Handle Automated Review Feedback (Copilot/CodeRabbit)
-
-**ALWAYS invoke this skill after Step 6.2, regardless of whether the Copilot review arrived or timed out.** This skill detects and resolves all unresolved automated review threads.
+Resolve any existing unresolved automated review threads:
 
 ```
 Skill tool: skill="github-resolve"
 ```
 
 **DO NOT PROCEED until all review issues resolved.**
-
----
-
-### STEP 7: CI/CD Monitoring (Standard + Large)
-
-**Skip for Small tasks — proceed directly to Step 8.**
-
-**Maximum 3 fix iterations.**
-
-#### 7.1 Wait for CI Checks to Start and Complete
-
-**Run the bundled CI check script in the background:**
-
-```bash
-# Use run_in_background: true on the Bash tool call
-bash [SKILL_BASE_DIR]/skills/sdlc/scripts/wait-for-ci-checks.sh [PR_NUMBER]
-```
-
-Poll the background task output every 60 seconds to report progress to the user.
-
-Script behavior:
-- Phase 1: Waits for checks to appear (some repos have a startup delay)
-- Phase 2: Polls every 30s until all checks complete (timeout: 900s / 15 minutes)
-- Exit 0: All checks passed -> **proceed to Step 8**
-- Exit 1: One or more checks failed -> **proceed to Step 7.2**
-- Exit 2: Timeout waiting for checks -> report to user, ask whether to continue waiting or proceed
-- Exit 3: Invalid arguments or gh error
-
-#### 7.2 Handle CI Failures (LOOP — max 3 iterations)
-
-**If Step 7.1 exits with code 1 (failures detected):**
-
-1. Fetch the failure logs:
-   ```bash
-   gh run view [RUN_ID] --log-failed
-   ```
-2. Analyze root causes and fix the issues
-3. Commit and push the fixes
-4. **GO BACK TO Step 7.1** — re-run the wait script
-
-```
-Step 7.1 (wait) -> fail -> Step 7.2 (fix) -> Step 7.1 (wait) -> ...
-```
-
-**Maximum 3 iterations.** If checks still fail after 3 fix attempts, STOP and report the persistent failures to the user with full details.
-
-**DO NOT PROCEED until all checks pass or max iterations reached.**
 
 ---
 
@@ -338,6 +264,7 @@ gh pr view [NUMBER] --json state,mergeable,reviews,statusCheckRollup
 ```
 
 Confirm:
+
 - PR is open and mergeable
 - All checks pass (if CI was run)
 - No unresolved comments
@@ -345,6 +272,7 @@ Confirm:
 #### 8.2 Update Task Tracking Docs
 
 If a spec file, project doc, or task list was referenced in the original request, update it to mark completed tasks:
+
 - Check off completed items (e.g., `- [ ]` -> `- [x]`)
 - Only mark items that are **actually addressed by the changes in this PR**
 - Commit the doc update to the PR branch
@@ -400,31 +328,32 @@ Ready for your review.
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Agent fails | Retry once with adjusted params, then STOP and report |
-| Git conflict | STOP, report to user, wait for resolution |
-| Tests fail | Fix, rerun until pass |
-| Auth fails | STOP, request `gh auth login` |
+| Error        | Action                                                |
+| ------------ | ----------------------------------------------------- |
+| Agent fails  | Retry once with adjusted params, then STOP and report |
+| Git conflict | STOP, report to user, wait for resolution             |
+| Tests fail   | Fix, rerun until pass                                 |
+| Auth fails   | STOP, tell user to run `gh auth login`                |
 
 ---
 
 ## Agent & Skill Reference
 
-| Step | Tool | Name | When |
-|------|------|------|------|
-| 2 | Agent | `requirements-analyzer` | Standard + Large |
-| 3 | Agent | `planner` | Standard + Large |
-| 4.25 | Skill | `test-coverage` | Standard + Large |
-| 4.5 | Skill | `simplify` | Always |
-| 5 | Skill | `github-pr` | Always |
-| 6.3 | Skill | `github-resolve` | Standard + Large |
+| Step | Tool  | Name                    | When             |
+| ---- | ----- | ----------------------- | ---------------- |
+| 2    | Agent | `requirements-analyzer` | Standard + Large |
+| 3    | Agent | `planner`               | Standard + Large |
+| 4.25 | Skill | `test-coverage`         | Standard + Large |
+| 4.5  | Skill | `simplify`              | Always           |
+| 5    | Skill | `github-pr`             | Always           |
+| 6.2  | Skill | `github-resolve`        | Standard + Large |
 
 ---
 
 ## Success Criteria
 
 Workflow complete when ALL true:
+
 - Feature branch created from main
 - Requirements documented (Standard + Large)
 - Plan created (Standard + Large)
@@ -434,6 +363,5 @@ Workflow complete when ALL true:
 - PR created with description
 - Self-review done, issues fixed (Standard + Large)
 - Automated review feedback resolved (Standard + Large)
-- CI/CD checks pass (Standard + Large, if CI exists)
 - Task tracking docs updated (if applicable)
 - PR delivered ready for human review and merge
