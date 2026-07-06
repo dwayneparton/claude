@@ -28,56 +28,18 @@ Claude Code reads config from `~/.claude`. This repo is the source of truth — 
 - **`skills/<name>/SKILL.md`** — Skill definitions with YAML frontmatter (`name`, `description`). Invoked via `Skill tool: skill="<name>"`.
 - **`commands/<name>.md`** — Slash commands. Invoked via `/<name>` in conversation.
 - **`hooks/<name>.sh`** — Hook scripts called by settings.json hooks. Deterministic enforcement, not advisory.
-- **`settings.json`** — Global settings: model, hooks, plugins.
+- **`settings.json`** — Global settings: hooks, permissions, plugins.
+- **`scheduled/`** — Cron-like tasks run via macOS Launch Agents.
 
-### Structural Hooks
+**Each file is self-documenting.** The YAML frontmatter (`name`, `description`) is the authoritative record of what an agent or skill does and when to use it — Claude Code routes based on it. Browse the directories for the current inventory; this file intentionally does not duplicate it.
 
-Hooks make rules deterministic — they run automatically at specific lifecycle points, unlike CLAUDE.md instructions which the LLM may forget after compaction.
+### Workflow Composition
 
-- **Post-compaction context** (`SessionStart`, matcher: `compact`) — Re-injects critical SDLC rules after conversation compaction. Prevents agent drift in long sessions.
-- **Protected files** (`PreToolUse`, matcher: `Edit|Write`) — Blocks edits to `.env`, lock files, and `.git/`. Defined in `hooks/protect-files.sh`.
-- **Auto-format** (`PostToolUse`, matcher: `Edit|Write`) — Runs Prettier on edited files. Eliminates formatting-only commits.
-- **Task completion validation** (`Stop`, type: `prompt`) — Asks a model whether all requested tasks are complete before letting the agent stop. Catches premature completion.
+The core pattern is composition: the `/sdlc` skill is the master workflow for all coding tasks; the `dev` agent is a thin wrapper that loads `/sdlc` and follows it; the `/team` command spawns multiple `dev` agents in parallel with a coordinator managing tasks and merges. SDLC steps invoke supporting agents and skills in sequence — `skills/sdlc/SKILL.md` is the authoritative step list.
 
-### Agent → Skill Pipeline
+### Hooks
 
-The core workflow is an orchestrated pipeline where agents and skills compose:
-
-1. **`/sdlc` skill** is the master workflow — it defines 8 mandatory steps from branch creation through PR finalization.
-2. **`dev` agent** is a thin wrapper that loads `/sdlc` and follows it.
-3. **`/team` command** spawns multiple `dev` agents in parallel, each following the full SDLC workflow independently, with a coordinator agent managing merges.
-
-The SDLC steps invoke other agents and skills in sequence:
-- Step 2: `requirements-analyzer` agent
-- Step 3: `planner` agent
-- Step 4.25: `/test-coverage` skill (Standard + Large)
-- Step 4.5: `/simplify` skill
-- Step 5: `/github-pr` skill
-- Step 6.3: `/github-resolve` skill
-
-### Advisory Agents
-
-Three agents provide decision support from different angles. Use the right one for the question being asked:
-
-- **`consultant`** — "Is this *decision* sound?" Evaluates trade-offs, surfaces counterpoints, and stress-tests a specific choice (e.g., "Should we switch from Postgres to MongoDB?"). Use when committing to a direction that's hard to reverse.
-- **`practicality`** — "Is this *plan* shippable?" Grounds ambitious plans into incremental, deliverable steps (e.g., "This 6-month roadmap needs to ship in 4 weeks"). Use when scope is creeping or discussions are too abstract.
-- **`vision`** — "Does this *work* serve the strategic direction?" Checks whether proposed features, fixes, or refactors align with the project's north star (e.g., "Does adding this feature fit our vision?"). Use when direction feels unclear or priorities conflict.
-
-When multiple could apply: start with the one that matches the user's immediate need. A user asking "should we?" wants the consultant. A user saying "how do we ship this?" wants practicality. A user wondering "does this matter?" wants vision.
-
-### Spec-Driven Development
-
-The `/spec-writer` skill produces numbered spec files in `specs/` using an RFC-inspired format with type contracts, behavioral specs (RFC 2119), and task checklists. Specs invoke both `api-ergonomics-reviewer` and `consultant` agents during review to ensure design decisions are stress-tested before finalizing. Specs feed into `/sdlc` or `/team` for implementation.
-
-### Vision Alignment
-
-The `/vision` skill creates and maintains a project vision document (`docs/VISION.md` or equivalent) that defines purpose, success criteria, guiding principles, and boundaries. The `vision` agent uses this skill and can operate in three modes: **create** (draft a new vision), **update** (revise an existing one), or **alignment check** (evaluate whether proposed work serves the vision). The vision document is referenced from `CLAUDE.md` so all agents can align their work against it.
-
-### Exploration & Debugging
-
-The `/spike` skill supports structured, timeboxed exploration — answering "can we?" or "should we?" before committing to a direction. Spikes produce findings (saved to `spikes/`), not production code. They connect curiosity to outcomes.
-
-The `/debug` skill provides structured diagnosis for production issues and errors — capture symptom, reproduce, hypothesize with parallel investigation, narrow to root cause, then hand off to `/sdlc` for the fix. Use `/debug` when something is broken; use `/spike` when exploring something new.
+Hooks make rules deterministic — they run automatically at specific lifecycle points, unlike CLAUDE.md instructions which the LLM may forget after compaction. Active hooks are registered in `settings.json`; scripts live in `hooks/`. Read `settings.json` for what's currently enforced.
 
 ### Scheduled Tasks
 
@@ -134,7 +96,7 @@ This config embodies specific principles that agents and skills reference:
 
 After adding new files, re-run `./install.sh` (only needed if new top-level directories were added; existing symlinked directories pick up new files automatically).
 
-**README.md must stay in sync.** When adding a new agent, skill, command, or scheduled task, add a one-line entry to the corresponding section in `README.md`. The README is the public-facing overview — every capability should be listed there with a brief description.
+The frontmatter `description` is the documentation — write it carefully, since it's both how Claude Code routes to the right agent/skill and how humans browsing the repo understand it. No separate index needs updating.
 
 ## Conventions
 
