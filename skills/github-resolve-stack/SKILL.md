@@ -12,7 +12,7 @@ The orchestrating agent (normally the session running this skill — typically F
 
 Stop and report when any of these is true:
 
-- **Stack is clean:** every PR's sub-agent exited with "Copilot is satisfied and CI is green", propagation is complete, the `/github-resolve` CI gate passes on every PR's *post-rebase* head commit, and the stack-level review (step 8) found no drift.
+- **Stack is clean:** every PR's sub-agent exited with "Copilot is satisfied and CI is green" or "Copilot gave a terminal assessment and CI is green" (*approval recommended*, *needs a closer look*, *needs human review* — see `/github-resolve`), propagation is complete, the `/github-resolve` CI gate passes on every PR's *post-rebase* head commit, and the stack-level review (step 8) found no drift.
 - **You told it to stop:** when asked for a decision (see step 7's pause), you answered that you want to take over or stop.
 - **Propagation conflict:** merging a lower PR's fixes into an upper PR produced a conflict that is not trivially mechanical. Do not guess at a resolution across layers; stop and report.
 - **A sub-agent exited on its own cap or timeout** (round cap, Copilot never answered). Report it alongside whatever else finished.
@@ -126,7 +126,8 @@ STACK RULES (these tighten /github-resolve, never loosen it)
 REPORT
 End with exactly this structure so the orchestrator can parse it:
 ### RESOLVE REPORT PR #{pr}
-- exit: <satisfied | human-decision | round-cap | copilot-timeout | nothing-actionable | error>
+- exit: <satisfied | terminal-assessment | human-decision | round-cap | copilot-timeout | nothing-actionable | error>
+- assessment: <Copilot's approval assessment phrase, or "none">
 - commits: <sha list or "none">
 - size: <orig adds/dels/files> -> <now adds/dels/files>
 - changed: <one paragraph>
@@ -141,7 +142,7 @@ Do not wait on agents by polling. Their completion notifications arrive on their
 
 When a sub-agent reports:
 
-1. **Parse the report.** Record exit reason, commits, size delta, declined, flagged, and `touched-outside-role`.
+1. **Parse the report.** Record exit reason, Copilot's assessment, commits, size delta, declined, flagged, and `touched-outside-role`.
 2. **Remove that PR's worktree**, then **if it pushed commits, cascade-rebase everything above it** — as soon as no agent is running on a branch above it (otherwise defer until the wave completes). From the main working copy:
    ```
    gh stack checkout {changed PR}
@@ -168,13 +169,15 @@ Run this once all agents have finished:
 - Anything this review turns up that needs a decision is asked the same way as step 7's pause (AskUserQuestion, recommendation first), and the answer is carried out — by the relevant agent via SendMessage, or by the orchestrator when it is mechanical — before the final report.
 - **Descriptions.** Each PR body should still describe its PR. The bottom PR or the stack's tracking issue, if there is one, should still describe the stack.
 - **Trunk sync.** Run `gh stack sync` once so the whole stack sits on current trunk and every PR's remote state matches. Any conflict here is treated like step 7's.
-- **Copilot state.** Every PR whose agent exited "satisfied" should show a clean latest Copilot review. A rebase rewrites the upper PRs' commits and can mark existing review threads outdated, but the PR's own diff does not change unless files overlapped. Where a rebase *did* change a PR's diff, or overlapping files were involved, re-request Copilot on that PR and wait once (poll loop from `/github-resolve` step 9). Where the diff is byte-identical, do not re-request; note that in the report.
+- **Copilot state.** Every PR whose agent exited "satisfied" or "terminal-assessment" should show its latest Copilot review as clean or carrying that assessment. A rebase rewrites the upper PRs' commits, can mark existing review threads outdated, and dismisses any formal Copilot approval — but the PR's own diff does not change unless files overlapped. Rules:
+  - A PR with a **terminal assessment** is never re-requested, rebase or not. Note any dismissed formal approval in the report as expected.
+  - A PR that exited "satisfied" without an assessment is re-requested only where the rebase *did* change its diff or overlapping files were involved; wait once (poll loop from `/github-resolve` step 9). Byte-identical diff: do not re-request; note it.
 
 ## Step 9 — Final report
 
 One report for the whole stack, written so the human can act without opening any PR:
 
-- **Exit reason** and the stack's PR list in order, with each PR's exit state.
+- **Exit reason** and the stack's PR list in order, with each PR's exit state and Copilot's assessment phrase.
 - **Size table:** original vs. now, per PR and total.
 - **What changed,** one short paragraph for the stack, not per PR.
 - **Propagation log:** which rebases happened, any mechanical conflicts resolved, and the CI gate result per PR on its final head commit (required checks green, or the flagged failures).

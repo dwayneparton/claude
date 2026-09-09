@@ -27,7 +27,7 @@ The script backs up any existing files before replacing them with symlinks. Chan
 
 Every agent, skill, and command is self-documenting: the YAML frontmatter at the top of each file describes what it does and when it's used. Browse the directories for the current inventory — there is intentionally no duplicate index here.
 
-The centerpiece is the `/sdlc` skill — an end-to-end development workflow (branch, requirements, plan, implement, test, PR) that the `dev` agent follows and the `/team` command parallelizes across multiple agents.
+The centerpiece is the `/sdlc` skill — an end-to-end development workflow (branch, validate, requirements, plan, implement, test, external review, PR) that the `dev` agent follows and the `/team` command parallelizes across multiple agents.
 
 ## Adding New Config
 

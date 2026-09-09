@@ -1,6 +1,6 @@
 ---
 name: github-resolve
-description: Resolve PR review comments (Copilot and human) by implementing changes, committing and pushing, replying and resolving threads, then re-requesting Copilot review and waiting for its next pass. Requests the first Copilot review if none was ever asked for. Guards the PR's intent and size, and pauses to ask you when a review would change the PR's approach or scope. Loops until Copilot approves or has no further requests.
+description: Resolve PR review comments (Copilot and human) by implementing changes, committing and pushing, replying and resolving threads, then re-requesting Copilot review and waiting for its next pass. Requests the first Copilot review if none was ever asked for. Guards the PR's intent and size, and pauses to ask you when a review would change the PR's approach or scope. Loops until Copilot approves, gives a terminal approval assessment (approval recommended, needs a closer look, needs human review), or has no further requests.
 
 ---
 
@@ -12,7 +12,8 @@ The loop exists to make the PR **correct and clear**, not bigger. An AI reviewer
 
 Stop the loop and report to the user when any of these is true:
 
-- **Copilot is satisfied and CI is green:** its newest review is `APPROVED`, or is `COMMENTED` with zero actionable inline comments (body typically reads "generated no comments"), **and** the CI gate (below) passes on the current head commit. Copilot almost never approves — a clean `COMMENTED` review is the normal success signal. A clean review with a red required check is not done.
+- **Copilot is satisfied and CI is green:** its newest review is `APPROVED`, or is `COMMENTED` with zero actionable inline comments (body typically reads "generated no comments"), **and** the CI gate (below) passes on the current head commit. A clean review with a red required check is not done.
+- **Copilot gave a terminal assessment and CI is green:** its newest review's overview carries an approval assessment of *approval recommended*, *needs a closer look*, or *needs human review* (see "Copilot's approval assessment" below). Any addressable comments in that same review are still resolved, pushed, replied to, and gated — but Copilot is **not** re-requested afterward. The PR is handed to the human reviewer with the assessment noted.
 - **You told it to stop:** when asked for a decision (see "Asking you" below), you answered that you want to take over or stop.
 - **Round cap reached:** 5 rounds by default. Going past this usually means Copilot is nitpicking or contradicting itself; hand back to the user with a summary instead of churning.
 - **Copilot never answered:** the listener timed out (20 minutes) without a new Copilot review. Report it; do not blindly re-request again.
@@ -62,6 +63,24 @@ gh api "repos/{owner}/{repo}/pulls/{pr}/requested_reviewers" \
 - **Has reviewed before:** proceed normally into the loop at step 1.
 
 This bootstrap request happens **only** when Copilot was never called. It is not a substitute for the per-round re-request in step 8.
+
+## Copilot's approval assessment
+
+Every Copilot review now includes an **approval assessment** in its overview (the review body), saying whether Copilot thinks the PR is ready to approve. When an admin has enabled it, Copilot may also submit a formal `APPROVED` review; that approval is dismissed by any later push, like a human's.
+
+Read the assessment from the newest Copilot review's body (step 10). Match case-insensitively; treat as **terminal** if it contains any of:
+
+- `approval recommended` or `ready to approve`
+- `needs a closer look`
+- `needs human review` or `human review`
+
+A formal `APPROVED` state is also terminal. Anything else — *changes needed*, *not ready*, or no assessment found — means Copilot still wants changes and the loop continues.
+
+What terminal means:
+
+- **Still resolve what is addressable.** Copilot often says "approval recommended" and still leaves a few comments. Triage and fix them exactly as in any other round: implement, CI gate, reply, resolve Copilot threads, ask you about anything flagged.
+- **Do not re-request Copilot** after that push. Its judgment has been given; the human reviewer takes it from here. If the push dismissed a formal approval, say so in the report — that is expected, not a regression.
+- *Needs a closer look* and *needs human review* are Copilot saying it is not confident. Do not try to talk it into confidence with more rounds; fix what is concrete, then hand off with that assessment stated plainly.
 
 ## Scope and bloat guardrails
 
@@ -237,6 +256,7 @@ Used by step 5, step 6b, and before every "satisfied" or "nothing actionable" ex
 ### 8. Record the baseline, then re-request Copilot
 
 - **Gate:** step 7b must be complete — no flagged item may still be undecided when Copilot is re-requested, or it will simply re-raise them.
+- **Terminal assessment:** if the review this round addressed carried a terminal assessment (see "Copilot's approval assessment"), **do not re-request**. Run the CI gate one final time on the pushed head and take the "Copilot gave a terminal assessment" exit.
 - Capture the newest Copilot review ID *before* re-requesting, so the listener can tell a new review from the old one (use `0` if Copilot has never reviewed):
   ```
   gh api "repos/{owner}/{repo}/pulls/{pr}/reviews?per_page=100" \
@@ -279,7 +299,9 @@ When the `COPILOT_REVIEW {id} {state} {time}` event arrives:
   gh api "repos/{owner}/{repo}/pulls/{pr}/comments?per_page=100" \
     --jq '[.[] | select(.pull_request_review_id == {review_id})] | length'
   ```
-- If `state` is `APPROVED`, or the comment count is `0` / the body says it generated no comments, Copilot is done. **Run the CI gate** on the current head before exiting; if it finds a required failure caused by the PR, fix it, push, and go back to step 8 (Copilot needs to see the new commit). Only when both Copilot and the gate are clean, take the **Copilot is satisfied and CI is green** exit.
+- **Read the approval assessment** from the body (see "Copilot's approval assessment") and record it for the round: terminal or not, and the phrase found.
+- If `state` is `APPROVED`, or the comment count is `0` / the body says it generated no comments, Copilot is done. **Run the CI gate** on the current head before exiting; if it finds a required failure caused by the PR, fix it, push, and — only if the assessment was *not* terminal — go back to step 8 so Copilot sees the new commit. Otherwise take the **Copilot is satisfied and CI is green** exit.
+- If the assessment is terminal **and** there are comments, run one more round (steps 1–7b) to resolve the addressable ones, then exit at step 8's terminal gate without re-requesting.
 - **Otherwise** increment `round`. If `round` exceeds the cap, exit and report what Copilot is still asking for. Else go back to step 1.
 
 ## Final report (every exit)
@@ -287,6 +309,7 @@ When the `COPILOT_REVIEW {id} {state} {time}` event arrives:
 Whatever the exit reason, end with a report the user can act on without reading the thread:
 
 - The exit reason and the PR URL.
+- **Copilot's assessment:** the phrase from its latest review (or "none"), and whether a formal approval was given or dismissed by a later push.
 - **Size:** original vs. current `additions` / `deletions` / `changedFiles`, one line. Call it out if growth exceeded the bloat budget.
 - **CI:** required checks on the head commit, green or not, and any optional failures noted. CI failures you accepted are listed under "Decisions".
 - **Changed:** one short paragraph of what was actually modified across all rounds.
@@ -303,5 +326,6 @@ Whatever the exit reason, end with a report the user can act on without reading 
 - Never force-push or amend existing commits. Always create new commits.
 - Never merge the PR. Copilot approval or a clean review is a signal for the human reviewer, not a merge trigger.
 - The listener is only for Copilot. Never wait on, poll for, or re-request human reviewers.
+- Once Copilot has given a terminal assessment, never re-request it. Fix what is concrete, then hand the PR to the human reviewer.
 - Sign replies and comments as the working agent, per global attribution guidelines — not as the user.
 - Give a one-line status at the start of each round (round number, how many comments, in-scope / declined / flagged counts, current size vs. original) so the user can follow along across a long session.
