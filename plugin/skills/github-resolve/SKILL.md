@@ -1,7 +1,6 @@
 ---
 name: github-resolve
-description: Resolve PR review comments (Copilot and human) by implementing changes, committing and pushing, replying and resolving threads, then re-requesting Copilot review and waiting for its next pass. Requests the first Copilot review if none was ever asked for. Guards the PR's intent and size, and pauses to ask you when a review would change the PR's approach or scope. Loops until Copilot approves or has no further requests.
-
+description: Resolve PR review comments (Copilot and human) by implementing changes, committing and pushing, replying and resolving threads, then re-requesting Copilot review and waiting for its next pass. Requests the first Copilot review if none was ever asked for. Guards the PR's intent and size, and pauses to ask you when a review would change the PR's approach or scope. Loops until Copilot approves, gives a terminal approval assessment (approval recommended, needs a closer look, needs human review), or has no further requests. Pass --no-request to never request Copilot and only address reviews the repo triggers automatically.
 ---
 
 This skill runs as a **loop against GitHub Copilot's code review**. Each round resolves the comments that exist now, pushes, re-requests Copilot, arms a listener for Copilot's next review, and repeats. Human reviewer comments are addressed whenever they are present, but the loop never waits on a human — only on Copilot.
@@ -17,6 +16,8 @@ Stop the loop and report to the user when any of these is true:
 - **Round cap reached:** 5 rounds by default. Going past this usually means Copilot is nitpicking or contradicting itself; hand back to the user with a summary instead of churning.
 - **Copilot never answered:** the listener timed out (20 minutes) without a new Copilot review. Report it; do not blindly re-request again.
 - **Nothing actionable and no Copilot review pending:** run the CI gate anyway, fix what it turns up, then report and stop.
+- **Copilot not triggered (`--no-request` only):** the repo did not request Copilot automatically. Existing comments are resolved and CI is green.
+- **Copilot addressed, no automatic re-review (`--no-request` only):** Copilot's automatic review was resolved and pushed, the repo did not re-request it on the push, and CI is green.
 
 No exit except "you told it to stop", "round cap", and "Copilot never answered" may be taken while a **required** check is failing on the head commit, unless you have been asked about that failure and accepted it (pre-existing, infrastructure, or unreadable). CI status is part of the definition of done, not a side note.
 
@@ -63,6 +64,46 @@ gh api "repos/{owner}/{repo}/pulls/{pr}/requested_reviewers" \
 
 This bootstrap request happens **only** when Copilot was never called. It is not a substitute for the per-round re-request in step 8.
 
+### No-request mode (`--no-request`)
+
+When invoked with `--no-request` (the `sdlc` skill always passes it), **never request or re-request Copilot**: no `--add-reviewer @copilot`, no `requested_reviewers` POST. Copilot takes part only when the repo triggers it automatically, for example a ruleset that requests Copilot on new PRs and optionally on new pushes. Everything else in this skill is unchanged. The differences:
+
+- **Bootstrap detects instead of requesting.** Run the two bootstrap checks. If Copilot has reviewed, go to step 1. If it is a pending requested reviewer, go to step 9 with baseline `0`. If neither, an automatic request may still be landing: run the detection below with baseline `0`. On `COPILOT_TRIGGERED`, re-run the checks and continue as above. On timeout, Copilot does not auto-review this repo. Run one round (steps 1–7b) over any comments already on the PR, run the CI gate, and take the **Copilot not triggered** exit.
+- **Step 8 detects instead of re-requesting.** Capture the baseline as usual *before* the push, push, then run the detection. On `COPILOT_TRIGGERED`, continue to step 9. On timeout, run the CI gate one final time and take the **Copilot addressed, no automatic re-review** exit.
+- **Step 10** "go back to step 8 so Copilot sees the new commit" means step 8's detection, not a request.
+
+Detection: a Monitor with `timeout_ms` `180000` (3 minutes) and `persistent: false`. It exits as soon as Copilot is queued or has posted a review newer than the baseline. Fill in `{owner}`, `{repo}`, `{pr}`, and `{baseline}`:
+
+```
+baseline={baseline}
+while true; do
+  newest=$(gh api "repos/{owner}/{repo}/pulls/{pr}/reviews?per_page=100" \
+    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]") | .id] | max // 0' 2>/dev/null || echo 0)
+  queued=$(gh api "repos/{owner}/{repo}/pulls/{pr}/requested_reviewers" \
+    --jq '[.users[].login] | index("copilot-pull-request-reviewer[bot]") != null' 2>/dev/null || echo false)
+  if [ "$newest" -gt "$baseline" ] || [ "$queued" = "true" ]; then echo "COPILOT_TRIGGERED"; exit 0; fi
+  sleep 20
+done
+```
+
+## Copilot's approval assessment
+
+Every Copilot review now includes an **approval assessment** in its overview (the review body), saying whether Copilot thinks the PR is ready to approve. When an admin has enabled it, Copilot may also submit a formal `APPROVED` review; that approval is dismissed by any later push, like a human's.
+
+Read the assessment from the newest Copilot review's body (step 10). Match case-insensitively; treat as **terminal** if it contains any of:
+
+- `approval recommended` or `ready to approve`
+- `needs a closer look`
+- `needs human review` or `human review`
+
+A formal `APPROVED` state is also terminal. Anything else — *changes needed*, *not ready*, or no assessment found — means Copilot still wants changes and the loop continues.
+
+What terminal means:
+
+- **Still resolve what is addressable.** Copilot often says "approval recommended" and still leaves a few comments. Triage and fix them exactly as in any other round: implement, CI gate, reply, resolve Copilot threads, ask you about anything flagged.
+- **Do not re-request Copilot** after that push. Its judgment has been given; the human reviewer takes it from here. If the push dismissed a formal approval, say so in the report — that is expected, not a regression.
+- *Needs a closer look* and *needs human review* are Copilot saying it is not confident. Do not try to talk it into confidence with more rounds; fix what is concrete, then hand off with that assessment stated plainly.
+
 ## Scope and bloat guardrails
 
 These apply to every comment in every round.
@@ -96,7 +137,7 @@ Flagged items are asked about at step 7b, after the round's in-scope work is pus
 
 Once answered, act on every decision in the same round: implement accepted items, commit, push, re-run the CI gate, then reply and resolve as the decision dictates. Only then move on to re-requesting Copilot.
 
-When this skill runs inside a sub-agent (for example under `/github-resolve-stack`), you cannot ask the user directly. In that case return the flagged list in your report and wait to be messaged the decisions, then apply them the same way.
+When this skill runs inside a sub-agent, you cannot ask the user directly. In that case return the flagged list in your report and wait to be messaged the decisions, then apply them the same way.
 
 ## Loop — repeat until an exit condition is met
 
@@ -237,6 +278,8 @@ Used by step 5, step 6b, and before every "satisfied" or "nothing actionable" ex
 ### 8. Record the baseline, then re-request Copilot
 
 - **Gate:** step 7b must be complete — no flagged item may still be undecided when Copilot is re-requested, or it will simply re-raise them.
+- **Terminal assessment:** if the review this round addressed carried a terminal assessment (see "Copilot's approval assessment"), **do not re-request**. Run the CI gate one final time on the pushed head and take the "Copilot gave a terminal assessment" exit.
+- **`--no-request`:** do not re-request. Use the detection in "No-request mode" instead of the request command below.
 - Capture the newest Copilot review ID *before* re-requesting, so the listener can tell a new review from the old one (use `0` if Copilot has never reviewed):
   ```
   gh api "repos/{owner}/{repo}/pulls/{pr}/reviews?per_page=100" \
@@ -303,5 +346,7 @@ Whatever the exit reason, end with a report the user can act on without reading 
 - Never force-push or amend existing commits. Always create new commits.
 - Never merge the PR. Copilot approval or a clean review is a signal for the human reviewer, not a merge trigger.
 - The listener is only for Copilot. Never wait on, poll for, or re-request human reviewers.
+- Once Copilot has given a terminal assessment, never re-request it. Fix what is concrete, then hand the PR to the human reviewer.
+- With `--no-request`, never request Copilot at any point, even when a review would help. Address what the repo triggers automatically.
 - Sign replies and comments as the working agent, per global attribution guidelines — not as the user.
 - Give a one-line status at the start of each round (round number, how many comments, in-scope / declined / flagged counts, current size vs. original) so the user can follow along across a long session.

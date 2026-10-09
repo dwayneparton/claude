@@ -1,7 +1,6 @@
 ---
 name: github-pr
-description: Send up PR to GitHub.
-
+description: Push the current feature branch and open a GitHub PR with a short description, or a `gh stack` when PRs depend on each other. Use when the user says 'open a PR', 'send up a PR', or 'create a pull request'. Runs the project's tests and lint first and never merges.
 ---
 
 ## Steps
@@ -21,7 +20,12 @@ description: Send up PR to GitHub.
    - If there are checks you can run locally (type-check, lint, test), run them now to catch issues early.
    - Note any required checks so you can verify they pass after opening the PR.
 
-4. **Push and Open PR:**
+4. **Check whether this is a stack:**
+   - It is a stack if the work is a planned series of dependent PRs, or if this branch is based on another unmerged feature branch instead of the default branch (for example, `gh pr list --state open --head <parent-branch>` finds a PR for the branch this one was cut from).
+   - For a stack, use GitHub stacked PRs, never a plain `gh pr create` against another PR's branch. Install the extension if needed (`gh extension install github/gh-stack`), adopt or build the stack (`gh stack init <branch1> <branch2> ...` for existing branches, `gh stack add` for new layers), check it with `gh stack view`, then push and open every layer with `gh stack submit`. Set each PR's description in the format from step 5 with `gh pr edit <number> --body ...`, then skip step 5.
+   - Otherwise continue to step 5.
+
+5. **Push and Open PR:**
    - Push the branch: `git push -u origin <branch-name>`
    - Open the PR using `gh pr create`:
      ```
@@ -45,3 +49,4 @@ description: Send up PR to GitHub.
 - Keep PR titles under 70 characters. Put details in the body, not the title.
 - If there are no changes to send up, report that and do nothing.
 - Never merge PRs. PRs are delivered for human review and merge.
+- PRs that depend on each other are always a GitHub stack (`gh stack`), never PRs hand-pointed at each other's branches.

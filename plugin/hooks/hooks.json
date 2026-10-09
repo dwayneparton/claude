@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\033]0;🔐 Claude(permission?)\\007' > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\033]0;📬 Claude(notification)\\007' > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'CRITICAL CONTEXT (re-injected after compaction): Follow the dp:sdlc skill steps IN ORDER. Never skip steps. Never push before the adversarial review gate has run. Never merge PRs — deliver for human review.'"
+          }
+        ]
+      }
+    ]
+  }
+}

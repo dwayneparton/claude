@@ -1,42 +1,39 @@
 # Claude Code Config
 
-Version-controlled configuration for [Claude Code](https://claude.com/claude-code) — agents, skills, commands, hooks, settings, and scheduled tasks that define how I work with AI.
+Version-controlled configuration for [Claude Code](https://claude.com/claude-code): global instructions, a status line, and the skills and hooks that define how I work with AI.
+
+## Layout
+
+| Path | What it is | How Claude Code gets it |
+| --- | --- | --- |
+| `plugin/` | The `dp` plugin: skills (`/dp:sdlc`, `/dp:github-pr`, ...) and hooks | Installed from this repo as a plugin marketplace |
+| `user/CLAUDE.md` | Global instructions for every repo | Imported from `~/.claude/CLAUDE.md` |
+| `user/statusline.sh` | Status line: model, git branch, context usage | Referenced by `statusLine` in `~/.claude/settings.json` |
+| `.claude-plugin/marketplace.json` | Lists the `dp` plugin | Read by `claude plugin marketplace add` |
+
+Each skill is self-documenting: the YAML frontmatter at the top of its `SKILL.md` says what it does and when it's used.
 
 ## Setup
 
-Clone the repo and run the install script to symlink everything into `~/.claude`:
+Install the plugin from the local checkout. It loads in place, so edits apply on `/reload-plugins` or the next session:
 
 ```bash
-git clone <repo-url> ~/Documents/GitHub/claude
-cd ~/Documents/GitHub/claude
-./install.sh
+claude plugin marketplace add ~/Documents/GitHub/claude
+claude plugin install dp@personal
 ```
 
-The script backs up any existing files before replacing them with symlinks. Changes take effect immediately.
+Point `~/.claude/CLAUDE.md` at this repo with a single import line:
 
-## What's Here
+```markdown
+@~/Documents/GitHub/claude/user/CLAUDE.md
+```
 
-| Directory | Contents |
-| --- | --- |
-| `agents/` | Agent definitions — specialized roles invoked via the Agent tool (development, planning, advisory) |
-| `skills/` | Skills — step-by-step workflows invoked as slash commands (`/sdlc`, `/debug`, ...) |
-| `commands/` | Slash commands, like `/team` for spawning coordinated agent teams |
-| `hooks/` | Deterministic lifecycle automation — scripts registered in `settings.json` that run on tool use, session events, etc. |
-| `scheduled/` | Cron-like tasks that run via macOS Launch Agents, each sending a prompt to `claude -p` |
-| `settings.json` | Global settings: hooks, permissions, plugins |
+Add the status line to `~/.claude/settings.json`:
 
-Every agent, skill, and command is self-documenting: the YAML frontmatter at the top of each file describes what it does and when it's used. Browse the directories for the current inventory — there is intentionally no duplicate index here.
+```json
+"statusLine": { "type": "command", "command": "bash ~/Documents/GitHub/claude/user/statusline.sh" }
+```
 
-The centerpiece is the `/sdlc` skill — an end-to-end development workflow (branch, requirements, plan, implement, test, PR) that the `dev` agent follows and the `/team` command parallelizes across multiple agents.
+## Settings
 
-## Adding New Config
-
-- **Agent**: Add a `.md` file in `agents/` with the required frontmatter
-- **Skill**: Add a directory in `skills/<name>/` with a `SKILL.md` file
-- **Command**: Add a `.md` file in `commands/`
-- **Scheduled task**: Add a `.yaml` file in `scheduled/tasks/` and run `bash scheduled/scripts/install.sh`
-- **Settings**: Edit `settings.json` directly
-
-## Inspired By
-
-- [fx/cc](https://github.com/fx/cc) — Claude Code configuration that inspired several agents and the SDLC workflow skill
+`~/.claude/settings.json` stays a real file and is maintained by hand. Claude Code writes to it (`/model`, `/config`, plugin installs), settings files can't include each other, and plugins can't set permissions, effort, or the status line. Org-managed settings override it.
