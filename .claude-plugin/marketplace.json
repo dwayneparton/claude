@@ -1,0 +1,14 @@
+{
+  "name": "personal",
+  "description": "Personal Claude Code config.",
+  "owner": {
+    "name": "Dwayne Parton"
+  },
+  "plugins": [
+    {
+      "name": "dp",
+      "source": "./plugin",
+      "description": "Personal skills and hooks: SDLC workflow, GitHub PR and review loop, Atlantis deploys, project vision."
+    }
+  ]
+}

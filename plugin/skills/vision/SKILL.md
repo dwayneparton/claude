@@ -29,7 +29,7 @@ Use the `Explore` agent (subagent_type: `Explore`) to understand the project. La
 - **Maturity**: Is this greenfield, early-stage, established, or legacy? How much code exists? How active is development?
 - **Architecture**: What are the major components, patterns, and technologies in use?
 - **Users**: Who uses this? Developers (if a library), end users (if a product), internal teams (if a service)?
-- **Existing Documentation**: Is there an existing VISION.md, README, CONTRIBUTING.md, or CLAUDE.md that describes goals or principles?
+- **Existing Documentation**: Is there an existing VISION.md, README, CONTRIBUTING.md, CLAUDE.md, or AGENTS.md that describes goals or principles?
 - **Existing Tests**: What does the test suite tell you about what the project values (correctness, performance, coverage)?
 
 #### 1.2 Git History Analysis
@@ -55,7 +55,7 @@ Check for any existing vision, mission, or strategy documents:
 find . -maxdepth 3 -iname "*vision*" -o -iname "*mission*" -o -iname "*strategy*" -o -iname "*goals*" | head -20
 ```
 
-Also check `README.md`, `CLAUDE.md`, and any `docs/` directory for sections that describe the project's purpose or direction.
+Also check `README.md`, `CLAUDE.md`, `AGENTS.md`, and any `docs/` directory for sections that describe the project's purpose or direction.
 
 If an existing vision document exists, read it thoroughly. The goal may be to *update* rather than *create*.
 
@@ -187,13 +187,15 @@ When writing the vision:
 - **Write for AI agents too.** Agents will read this document to align their work. Use clear, unambiguous language. Avoid metaphors or cultural references that require human context to interpret.
 - **Reflect the user's voice.** This is their vision, not yours. Use the language and priorities they expressed during clarification.
 
-### Phase 4: CLAUDE.md Integration
+### Phase 4: Project Instruction File Integration
 
-After writing the vision document, update the project's `CLAUDE.md` to reference it.
+After writing the vision document, update the project's instruction file to reference it.
 
-#### 4.1 Check for Existing CLAUDE.md
+#### 4.1 Find the Instruction File
 
-Read the project's `CLAUDE.md` (if it exists). Look for:
+Use the file the repo already has: `CLAUDE.md` or `AGENTS.md`. If the repo has neither, create `AGENTS.md` only; Claude Code reads it natively.
+
+Read that file. Look for:
 
 - An existing reference to a vision document
 - A section about project goals or principles that the vision now supersedes
@@ -201,7 +203,7 @@ Read the project's `CLAUDE.md` (if it exists). Look for:
 
 #### 4.2 Add Vision Reference
 
-Add a section to `CLAUDE.md` that references the vision. The exact format depends on the existing structure, but it should:
+Add a section to the instruction file that references the vision. The exact format depends on the existing structure, but it should:
 
 - Point to the vision document location
 - Briefly explain what it is and why agents should read it
@@ -215,7 +217,7 @@ Example addition:
 This project's vision, success criteria, and guiding principles are defined in [docs/VISION.md](docs/VISION.md). All agents and contributors should align their work with this vision. When evaluating whether a feature, fix, or change is appropriate, check it against the vision's guiding principles and boundaries.
 ```
 
-If the CLAUDE.md already has a goals or principles section that the vision supersedes, note this to the user and suggest consolidation — but don't remove content without permission.
+If the instruction file already has a goals or principles section that the vision supersedes, note this to the user and suggest consolidation — but don't remove content without permission.
 
 ### Phase 5: Review
 
@@ -227,7 +229,7 @@ Before presenting the final vision, verify:
 - [ ] Every principle has a "which means" clause
 - [ ] The boundaries section addresses at least one common misconception about the project's scope
 - [ ] The document reads clearly to both a human and an AI agent
-- [ ] The CLAUDE.md reference is in place
+- [ ] The project instruction file references the vision
 
 #### 5.2 Present to User
 
@@ -235,7 +237,7 @@ Present the completed vision with:
 
 1. The file path where it was written
 2. A brief summary of what's in it
-3. The CLAUDE.md changes made
+3. The project instruction file changes made
 4. An invitation to revise — "This is a draft. What would you change?"
 
 ## 3. Output
@@ -245,5 +247,5 @@ After completing all phases, report:
 1. The vision file created or updated (with path)
 2. A one-line summary of the project's mission
 3. The number of guiding principles defined
-4. CLAUDE.md changes made
+4. Project instruction file changes made
 5. Any open questions or areas where the user should refine the vision
