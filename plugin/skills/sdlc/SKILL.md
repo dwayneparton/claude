@@ -409,7 +409,9 @@ Skill tool: skill="dp:github-resolve"  args="--no-request"
 
 For a stack, run it on each PR bottom-up, finishing one layer before moving to the next.
 
-In that mode the skill never request or re-request Copilot. They wait briefly for an automatic review, address it if one arrives, follow automatic re-reviews on later pushes when the repo does that, and otherwise run the CI gate and address whatever comments are already there. They pause to ask the user whenever a comment would change the PR's approach or scope. Follow their exit conditions; do not extend the loop past them.
+In that mode the skill never requests or re-requests Copilot. It waits briefly for an automatic review, addresses it if one arrives, follows automatic re-reviews on later pushes when the repo does that, and otherwise runs the CI gate and addresses whatever comments are already there. It pauses to ask the user whenever a comment would change the PR's approach or scope. Follow its exit conditions; do not extend the loop past them.
+
+When Copilot's assessment says the PR needs a closer look or human review, do not stop there. Read why: fix the concerns that are concrete and in scope, and keep following re-reviews. Only reasons that need a person's judgment, such as a product decision or a security sign-off, end the loop, and they go in the report for the human reviewer.
 
 ---
 
